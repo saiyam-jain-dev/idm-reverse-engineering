@@ -1,0 +1,20 @@
+# .NET build and publish output
+**/bin/
+**/obj/
+.vs/
+
+# Per-user IDE settings
+*.csproj.user
+*.suo
+
+# Download queue and partial transfer data
+downloads.json
+downloads.json.tmp
+*.part
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.pfx
+*.snk

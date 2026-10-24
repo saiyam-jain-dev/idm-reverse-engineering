@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Independent Download Helper</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <header class="header">
+      <div class="brand-mark" aria-hidden="true">↓</div>
+      <div>
+        <h1>Download Helper</h1>
+        <p>Connected to your desktop manager</p>
+      </div>
+    </header>
+
+    <main>
+      <form id="download-form" class="download-form">
+        <label for="url">Download URL</label>
+        <div class="url-row">
+          <input id="url" name="url" type="url" placeholder="https://example.com/file.zip"
+            autocomplete="url" required>
+          <button class="primary" type="submit">Add</button>
+        </div>
+      </form>
+
+      <section class="interception-setting">
+        <label class="toggle-row" for="intercept-browser">
+          <input id="intercept-browser" type="checkbox">
+          <span>Catch downloads started in Chrome</span>
+        </label>
+        <p class="hint">Chrome pauses new downloads while the desktop app asks where to handle them.</p>
+      </section>
+
+      <section class="media-section" aria-labelledby="media-heading">
+        <div class="section-heading">
+          <h2 id="media-heading">Page media</h2>
+          <button id="scan-media" class="secondary" type="button">Scan this tab</button>
+        </div>
+        <p id="scan-note" class="hint">Only scans when you ask. Direct media files only.</p>
+        <ul id="media-list" class="media-list"></ul>
+      </section>
+
+      <section class="downloads-section" aria-labelledby="downloads-heading">
+        <div class="section-heading">
+          <h2 id="downloads-heading">Desktop downloads</h2>
+          <button id="refresh" class="text-button" type="button">Refresh</button>
+        </div>
+        <ul id="downloads-list" class="downloads-list"></ul>
+      </section>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+      <p class="privacy-note">Downloads are sent to the local desktop app. Page media is scanned only when you ask.</p>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

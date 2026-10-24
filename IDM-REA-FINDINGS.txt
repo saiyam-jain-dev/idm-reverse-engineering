@@ -1,0 +1,435 @@
+IDM REA FINDINGS
+================
+
+Status
+------
+Static package/extension pass complete; deeper native code analysis remains
+blocked by the missing PE disassembly provider. This is the durable handoff for
+later models/analysts. The user requested live browser/extension analysis, but
+no loopback CDP endpoint or selected page was supplied, so runtime inspection
+has not yet occurred. REA did not execute the official application or
+extension. The independent extension's service worker was exercised in a
+Node.js mock-Chrome test harness; it was not loaded into Chrome. No live
+browser traffic or user browsing data was captured. A separate static REA
+inspection of the independent desktop app's managed assembly was completed
+on 2026-10-24; it does not constitute runtime download validation. See the
+desktop functional audit near the end of this file.
+
+Host and target identity
+------------------------
+Host: Windows 11 x64.
+Install directory: C:\Program Files (x86)\Internet Download Manager
+Main executable: IDMan.exe
+Main file version: 6.43.2.2
+Main SHA-256: fd91cd8dcd173e1b39d3a257caa5114929b0355af7ea9d78eeef1f1cac26f25e
+Main Authenticode status: Valid; signer Tonec Inc.
+PE architecture: x86 / PE32; REA managed inspection says no CLI data directory.
+
+Browser packages found in the installation directory
+-----------------------------------------------------
+* IDMEdgeExt.crx: SHA-256
+  026793fa036df135eee5e89a3d301b8ab7022d191f3a1615cda672dfb3f886e6;
+  extension version 6.43.1; Manifest V2.
+* IDMGCExt.crx: SHA-256
+  1d2297ccbdbbf06e9e2546bb9f9b9985433eb7c02d75f09bbcbc9784ece583f7;
+  extension version 6.43.1; Manifest V3.
+* idmmzcc3.xpi: SHA-256
+  9cfa94b69b654b39fe06ad240dca0b90e5317860a6c69f4cef22c38f097d587a;
+  extension version 6.43.1; Manifest V2; Gecko ID
+  mozilla_cc3@internetdownloadmanager.com; minimum Firefox 79.
+* IDMOpExt.nex: SHA-256
+  f91b4aa4e481982de15f6b9fe55da271d36d5fa7253d2ac338f8357636c93a27;
+  extension version 6.41.8; Manifest V2; CRX3-wrapped ZIP.
+* IDMGCExt59.crx: SHA-256
+  3a5c70182a4a31c860295ab2931c34661a3c894dc02623ae6e2a70c9c378bac0;
+  legacy extension version 6.40.8.2; Manifest V2.
+* idmmzcc.xpi and idmmzcc2.xpi are also present, but neither contains the
+  current manifest.json layout; they were not analyzed beyond file presence.
+
+Observed static architecture
+----------------------------
+1. Browser injection:
+   * Current Edge and Firefox packages inject content.js at document_start in
+     all frames for HTTP, HTTPS, FTP, and file URLs. Current Chrome declares
+     *://*/* and all frames.
+   * The content script checks for Windows, gates to HTML documents, connects
+     to the extension background using a named runtime port, and registers
+     document, pointer, keyboard, and page lifecycle events.
+   * Static code contains video/audio/object/embed selectors, MutationObserver
+     use, page/player-specific selector patterns, and code that observes media
+     DOM changes. This supports media discovery as a static capability; it
+     does not establish which sites or selectors worked at runtime.
+   * document.js contains wrappers around page fetch/XHR/response-reading
+     paths and sends candidate data through a window-message bridge to the
+     content script. The static parser reports these scripts were read as
+     inert text; bootstrap code was not run.
+   * Focused Edge source review confirms the content script counts video/audio
+     elements, scans and tracks video elements, and uses DOM mutation observers.
+     It also observes inline script text and has a path that can issue a text
+     XMLHttpRequest for a discovered URL before sending compact numeric
+     messages to the extension background. The protocol meaning of those
+     numeric message IDs is not fully recovered.
+   * A literal-token search of Edge content.js, document.js, and background.js
+     found no "quality" token. No complete quality/variant list or user-facing
+     IDM video-panel renderer was identified in the extension sources. The
+     extension may detect/forward media candidates while desktop IDM or
+     site-specific runtime data determines selectable variants; this remains
+     an unverified hypothesis, not a finding.
+
+2. Download interception and request context:
+   * The background registers webRequest listeners for before-request,
+     before-send-headers, headers-received, response-started, and errors.
+     Chrome additionally registers completion/redirect observers in the
+     analyzed code path.
+   * Request-body capture is requested on matching URL/type filters.
+   * The downloads.onCreated path can pause a browser download, correlate it
+     with a webRequest, then pass it to the desktop-side protocol. The
+     determining-filename handler filters using extension and URL rules
+     before forwarding; it does not blindly take over every browser download.
+   * The code reads URL-specific cookies, serializes cookie name/value pairs,
+     and constructs download context containing URL/referrer/frame context,
+     user agent, cookies, request/response headers, and POST data where
+     available. The exact serialization is protocol-specific and obfuscated.
+   * The package maps many MIME types/extensions, including media and streaming
+     playlist/manifest formats such as M3U8, MPD, and F4M.
+   * Context-menu definitions include downloading links/media, selected text,
+     page content/all links, and items on the browser downloads page.
+   * Browser downloads API listeners are used for created downloads and
+     filename determination where supported.
+
+3. Extension-to-desktop bridge:
+   * All current extension variants contain a WebSocket connection attempt to
+     127.0.0.1:1001 and 0.1.0.1:1001, using the subprotocol
+     plugin.v3.internetdownloadmanager.com and a client/random query string.
+   * On connection failure the extension falls back to
+     browser.runtime.connectNative("com.tonec.idm"), then retries with
+     backoff. These are static code paths, not observed live connections.
+   * Chrome/Edge native host manifest is IDMMsgHost.json. It declares host
+     com.tonec.idm, stdio transport, executable IDMMsgHost.exe, and two allowed
+     extension IDs:
+     ngpampappnmepgilojfohadhhmbhlaek
+     llbjbkhnmlidjebalopleeepgdfgcpec
+   * Firefox uses IDMMsgHostMoz.json and allows only
+     mozilla_cc3@internetdownloadmanager.com.
+   * Windows native-messaging registry entries point Chrome and Edge to
+     IDMMsgHost.json and Mozilla to IDMMsgHostMoz.json. Entries were observed
+     in current-user hives; Chrome also has machine-wide entries.
+   * The native host manifest and registration establish a declared bridge,
+     not that a browser extension is enabled or that the native host is
+     currently running.
+
+4. Permissions and disclosed handling:
+   * Current Edge MV2 and Firefox MV2 request <all_urls>, cookies, tabs,
+     contextMenus, webNavigation, webRequest, webRequestBlocking,
+     nativeMessaging, and related permissions. Firefox additionally lists
+     privacy and idle.
+   * Chrome MV3 uses a service_worker, minimum Chrome 109, host_permissions
+     <all_urls>, and declares scripting, webRequest, declarativeNetRequest,
+     downloads, cookies, tabs, nativeMessaging, and related permissions.
+   * Chrome's MV3 background contains declarativeNetRequest session-rule
+     creation for configured URL patterns that redirect into the extension's
+     captured.html route. Since the matching pattern arrives as runtime
+     configuration, the complete active rule set is not statically known.
+   * Firefox welcome/privacy HTML says request data required to transfer
+     downloads to IDM can include URL, address, cookies, encrypted
+     credentials, query parameters, and POST data; it states the data is
+     stored locally until the download is deleted and resent to the original
+     server, not to IDM/vendor or third-party servers. This is a static policy
+     statement, not a verified runtime traffic finding.
+
+5. Cross-browser/version observations:
+   * Desktop IDMan.exe reports 6.43.2.2; current extension manifests report
+     6.43.1; IDMMsgHost.exe reports 6.38.20.9. IDMNetMon.dll reports
+     6.43.2.363 and idmbrbtn.dll reports 6.43.1.100. These component version
+     differences are observed, but do not by themselves prove incompatibility
+     or a defect.
+   * Chrome is the current MV3/service-worker package; Edge and Firefox
+     packages are MV2. A REA comparison between Edge and Chrome graphs reported
+     6 changed items and 41 unknown items (comparison ID below); graph
+     coverage is incomplete, so do not treat this as an exhaustive diff.
+   * Direct package comparison found document.js has the same SHA-256 in
+     current Edge, Chrome, and Firefox extractions; background.js and
+     content.js differ across browser packages.
+
+Chrome extension follow-up (REA static review)
+---------------------------------------------
+* The installed IDMGCExt.crx is a Chrome Manifest V3 package, version 6.43.1,
+  minimum Chrome 109. Its manifest declares a service worker, all-site host
+  permissions, all-frame content injection at document_start, and permissions
+  including cookies, webRequest, downloads, declarative network rules, and
+  native messaging.
+* In background.js, the code registers downloads.onCreated and filename
+  determination handlers and observes request, request headers, response
+  headers, response start, and error events. Some listeners request POST body
+  data. A download can be paused and correlated with request state before the
+  desktop bridge handles it. Configured URL patterns can install session
+  declarativeNetRequest redirects to captured.html.
+* The desktop bridge tries WebSockets to loopback 127.0.0.1:1001 and
+  0.1.0.1:1001 with a product-specific subprotocol, then falls back to the
+  com.tonec.idm native messaging host. This is a static code path, not evidence
+  that either endpoint or host was active.
+* content.js establishes top/sub-frame runtime ports, scans video/audio and
+  related media elements, monitors DOM mutations, contains player/site selector
+  patterns, observes inline scripts, and sends structured numeric messages to
+  the background. document.js uses a same-origin window-message bridge for
+  page-context instrumentation. These observations establish static
+  capabilities, not runtime success or exact message semantics.
+* The static extension evidence does not establish where IDM renders video
+  quality choices or how stream variants are generated. That pipeline and
+  native IDM processing remain unresolved; no DRM or site-specific stream
+  reconstruction was inferred.
+* The manifest and static handlers permit processing of URLs, cookies,
+  request/response headers, and POST metadata for download handoff. This is a
+  static capability description; live collection/transmission was not observed.
+
+Independent Chrome extension prototype
+---------------------------------------
+* Source is in chrome-extension/. It is an original Manifest V3 implementation
+  and does not include IDM code, icons, or assets.
+* It sends direct HTTP(S) URLs and explicit link/video/audio context-menu
+  actions to the Windows desktop queue. It offers an active-tab media scan
+  only when the user clicks the popup scan control.
+* It requests activeTab, contextMenus, downloads, nativeMessaging, scripting,
+  and storage. It has no all-sites host permission, cookie permission, or
+  request-body/header observers.
+* The native host uses Chrome stdio framing and forwards one request to a
+  same-user named pipe. The WinForms server uses PipeOptions.CurrentUserOnly,
+  bounded JSON frames, a bounded concurrent-client count, and dispatches queue
+  actions onto the UI thread. The host is registered per-user in Chrome's
+  NativeMessagingHosts registry key and its manifest allowlists only the
+  extension's fixed ID.
+* The app and host are published side-by-side in
+  bin\Release\net8.0-windows\win-x64\publish\BridgeReady\; the installer is
+  chrome-extension\install-native-host.ps1. The bridge was exercised end to
+  end with status/list requests through the published native host and pipe;
+  the response reported the desktop ready and omitted URL/path fields. The
+  test-launched desktop process was stopped afterward.
+* Media scanning reads direct video/audio/source element URLs. It explicitly
+  marks HLS/DASH manifests unsupported and does not claim to reconstruct video
+  quality variants or protected media.
+* Chrome installation steps, permission rationale, and limitations are in
+  chrome-extension/README.md. Browser interception uses downloads.onCreated
+  to pause a new Chrome HTTP(S) download, ask the desktop app to show a native
+  confirmation dialog, then cancel Chrome and start the desktop queue only
+  after acceptance. Choosing Chrome or encountering a handoff failure resumes
+  the browser item if Chrome has not already been cancelled. The desktop queue
+  commit retries once and is idempotent; if both commit attempts fail after
+  Chrome cancellation, the job remains queued for manual start. The popup
+  toggle is on by default.
+* Browser metadata is handed off as URL plus suggested filename; browser
+  cookies, POST bodies and request headers are not copied. The desktop
+  downloader may fail on authenticated or POST-backed downloads. Since
+  downloads.onCreated fires after Chrome starts the transfer, the pause is
+  best-effort and very fast downloads can finish before the extension can
+  intercept. This is not a pre-request blocking hook.
+* Node tests cover automatic handoff, disabled interception, choosing Chrome,
+  unavailable native host, and browser cancellation failure, along with the
+  existing controls and URL validation; the suite has 12 passing cases. The
+  published native host and desktop app were also exercised with a
+  download.intercept request: the custom prompt appeared and choosing
+  **Keep in Chrome** returned decision=browser. The extension was not loaded
+  into Chrome, so this is not a live browser download test.
+
+Browser download interception REA follow-up
+--------------------------------------------
+* A fresh static REA pass used the installed Chrome package
+  C:\Program Files (x86)\Internet Download Manager\IDMGCExt.crx. Its CRX3 ZIP
+  payload was extracted to a temporary directory without executing it. The
+  four-source JavaScript application analysis is partial and retains 7,193
+  semantic graph unknowns and 23 application graph unknowns:
+  parent Evidence ev_841b4497722972620152a4efe3abd54647f374a37860f83e927cab5ee3a469d0.
+* REA semantic traces for the literal APIs "downloads.onCreated" and
+  "downloads.pause" returned no graph seed matches (trace Evidence
+  ev_611f3eb4b70b4b26a8eee2ee3f6215f16f02ed9f3a1256b2828f6f0a4c43f134 and
+  ev_f9f17e8c0c2434b4ed0793d88d62ccb32313c791f4dc4579fbcd65ff316f1ba7).
+  Because the source graph is partial, these misses do not show that the APIs
+  are absent; the following are static source observations, not runtime facts.
+* In background.js, the download setup function registers Chrome's
+  downloads.onCreated listener and request/response webRequest listeners. The
+  download-created handler checks runtime configuration and URL eligibility,
+  correlates a candidate with cached request state using URL and start time,
+  records it by Chrome download ID, then calls downloads.pause. A handoff
+  completion helper clears that record and chooses downloads.cancel or
+  downloads.resume. The extension's desktop transport tries its loopback
+  WebSocket before the com.tonec.idm native-messaging host. The complete
+  request-metadata correlation is not recovered.
+* The independent implementation uses a narrower version of this lifecycle:
+  pause -> desktop confirmation -> cancel Chrome and start the desktop queue
+  if accepted; otherwise resume Chrome. The desktop prompt presents the
+  suggested filename and source, with **Download here** and **Keep in Chrome**
+  actions. Chrome must be reloaded and the newly requested downloads/storage
+  permissions accepted before this code runs. Chrome cancellation precedes
+  the desktop queue commit; failed commits are retried once and can be started
+  manually from the desktop queue. This update has not been tested in a live
+  Chrome profile.
+
+Evidence ledger (REA Evidence IDs)
+---------------------------------
+Desktop:
+* Managed/non-managed check for IDMan.exe:
+  ev_63ed128d12491b0348727ba1ab12d4f95f5010e8345dd1b31daa0235b1133de0
+  Result: PE32 x86; no CLI data directory; not a .NET managed executable.
+* IDMan.exe PE resources:
+  ev_b6ee7607b2888173fbf1a8eadbcb8c9c23e8260f832942e6a8853bbe6633535e
+  Result returned a large complete resource listing; no code decompilation.
+* IDMMsgHost.exe PE resources:
+  ev_49c091596a5278e258660aa4df10e333e1e7c2fd7126ab769ca4714770b64df6
+  SHA-256 dba25a49adb88f675db26d2dc7a0fa9d4a5db2326858cb9d2515f6f34b8e0b65.
+
+Edge:
+* CRX-derived ZIP inventory parent Evidence:
+  ev_7d01a41fda394f12b68bd769ff53737652af3832899078c27e4bfa6ce536bca6
+  Summary view Evidence: ev_f6bd20171e7c090c260984ff1ddeb44b2f2087295f4de787df048b81876d1c94
+* Extracted JavaScript application parent Evidence:
+  ev_89dc8469dd18b8a9b13396fc3fc7e56d3b91eb471b5f16f3332f8db14ce66f3b
+  REA parsed 5 JS files; graph coverage partial; 7,680 semantic unknowns.
+* Follow-up Edge extracted payload:
+  Derived ZIP SHA-256:
+  4dd52588bcc1a8b4986c9936f1864c160da248b1c6bdda7a5180e6d7010fa4a0
+  Inventory summary Evidence:
+  ev_f6bd20171e7c090c260984ff1ddeb44b2f2087295f4de787df048b81876d1c94
+  Safe extraction Evidence: ev_2c949535c7ffb8b64402c1b7e17bb56da77926d9743517dd3c1b1081cc41a0bc
+  Focused JS application graph Evidence: ev_1ae39d7231e4b4d258279e04492cc755e48dbf1f72e1edb3922973aa261a8367
+  It analyzed content.js, background.js, and document.js from the extracted
+  payload; coverage remains partial. Static semantics queries seeded with the
+  literal "quality", WebSocket endpoint ws://127.0.0.1:1001, and event
+  downloads.onCreated returned no graph seed matches. These no-match results
+  do not imply the features are absent; graph extraction is partial and does
+  not handle every obfuscated/dynamic relation.
+
+Chrome:
+* CRX-derived ZIP inventory parent Evidence:
+  ev_392712df12ce0e70c76e5ba65e38e07b3a7fe6f7d968daaa36b0c91baef0a88e
+  Summary view Evidence: ev_610797a0fdda6fc267a6f78b1e1a24fac6c59868172b6fa16a36c4a33162b808
+* Extracted JavaScript application parent Evidence:
+  ev_9c6f376597eeeb348057edc086808f58d3838726da1f40b50771294a40c1e3ad
+  REA parsed 6 JS files; graph coverage partial; 7,966 semantic unknowns.
+* Focused repeat analysis of the installed CRX3 payload:
+  Derived ZIP payload SHA-256 (CRX3 header removed):
+  331a7b98aed7583b4b897205cd0393462a668576f0c5d32339ef1ea897deb946
+  Extracted source directory SHA-256:
+  06b86604c7e3eadda4b0c6880d1a1407a519127e3f67a4598f5f0b8268266067
+  Focused application Evidence:
+  ev_600422453ae13faf6e0fa90a9c109667764899a91892f65645ab175c4b555b10
+  Summary view Evidence:
+  ev_ed254aa5f1ca7e7f373aff64f8dc56f3dd7cf0bb9f963b459bc4f277e4278330
+  Selected manifest.json, background.js, content.js, document.js, and
+  captured.js. REA parsed 4 JavaScript sources with no parse failures;
+  coverage is partial, with 22 inventoried files unselected and 7,862 semantic
+  graph unknowns. No scripts were executed.
+
+Firefox:
+* XPI inventory parent Evidence:
+  ev_d2d6559153430e19480a72749d8cbbcc5887f61a7ec9dff17719b511e2e087d8
+  Summary view Evidence: ev_32fc0e4a3cdb1bc51903cc62cdd87cfb20888a496d6f716248c2ff8f3c998411
+* Extracted JavaScript application parent Evidence:
+  ev_f87bbd9071d53d5a5959f369769d14f6fc53b3e250d8a95f0bd2bfb21900b7d0
+  REA parsed 5 JS files; graph coverage partial; 7,543 semantic unknowns.
+
+Opera:
+* NEX CRX3 payload ZIP inventory parent Evidence:
+  ev_bac039e11f8c4230780554a2f87493d3a42ee75e7fc879e3b191de40f12ec5cb
+  Summary view Evidence: ev_37febf33d0598cbb765005c76b8973b7417cef497d648b6b441a5639108883b6
+* Extracted JavaScript application parent Evidence:
+  ev_d1d1078dd62582ba41894e29fdf1ec1f9337cf0490f6827fcdb3e6948347d1a1
+  Summary view Evidence:
+  ev_89f38dd807e880540caad21597907f785bce6d1d3570e3d8c06391dcb1d6d840
+  REA parsed 5 JS files; graph coverage is partial; 2,073 semantic unknowns.
+
+Cross-version:
+* Edge-to-Chrome graph comparison: ev_025ddb7ac105f1090f087e3d1f69924b0d00dcdd43b5a5d32966d2db487b330f
+  Summary: 6 changed, 41 unknown, zero additions/removals; not exhaustive due
+  partial input graphs.
+
+Limitations and next steps
+--------------------------
+* REA's PE disassembly provider is unavailable on this host. Ghidra is not
+  configured (GHIDRA_INSTALL_DIR unset); Hopper is unsupported on Windows;
+  IDA MCP and Kuna are not configured, and Kuna does not admit PE targets in
+  this reported profile. REA binary_overview and string search therefore
+  failed with provider_unavailable. No native IDMan function pseudocode or
+  call graph has been obtained.
+* Do not install/configure an analysis provider without explicit approval.
+  To continue native code analysis, configure an existing supported provider
+  or agree on a Ghidra installation/configuration plan first.
+* Browser runtime was not observed. The user requested this follow-up, but REA
+  still needs a caller-supplied loopback CDP endpoint and selected target for
+  passive browser inspection. No browser navigation, extension action,
+  network capture, or page data was performed.
+* Browser extension packages in the IDM install folder and native host
+  registration were observed; actual browser extension enablement/state was
+  not checked.
+* Application-graph parsing is static and incomplete. The analyzer reports
+  unresolved dynamic edges, omitted inline JavaScript in captured.html, and
+  substantial semantic unknowns. A no-match feature trace does not establish
+  feature absence.
+* CRX/NEX archive analysis used a derived ZIP payload after removing the CRX3
+  wrapper. The original package SHA-256 is recorded above; the derived ZIP has
+  a different SHA-256 and is not the signed package itself.
+* A future pass should obtain a loopback CDP endpoint and selected existing
+  video page, passively inspect its DOM/UI and attach-window event metadata,
+  then reconcile only user-approved observations with the static application
+  graph. A separate native pass should examine IDMan.exe,
+  IDMMsgHost.exe, IDMNetMon.dll, and IDMIntegrator64.exe once a supported PE
+  provider is available.
+
+Independent desktop app functional audit (2026-10-24)
+------------------------------------------------------
+Target and method:
+* REA inspected the current win-x64 build's managed assembly at
+  bin\Release\net8.0-windows\win-x64\DownloadManager.dll. The published
+  self-contained DownloadManager.exe is 153,546,145 bytes; inspecting that
+  single-file EXE exceeded REA's reported 134,217,728-byte eager-snapshot
+  limit, so REA did not analyze the EXE container itself.
+* Assembly SHA-256:
+  83cd496f42249fc151021e49c929b54eb7de2f2b646572b81375f3e8c331987e.
+  MVID: 37b6f7ca-8d5d-4b36-a87a-f409a6074a5c. Size: 83,968 bytes.
+  REA classified it as modern .NET CIL, x86-64; metadata status and source
+  coverage were complete (REA evidence ev_ae452defd10d60b1f6aa71c4714a1b73bddee216240414b79fb1d1a424281373,
+  summary view ev_8f336670476be4483c0046ac1a020f106dd90e1d2cbac0d1dfbabcf6aed4590e).
+* Focused managed-member inspection selected Form1, DownloadEngine,
+  DownloadQueueStore, DownloadJob, and DesktopBridgeServer. The selection
+  matched all five requested types and returned 106 methods, 59 fields,
+  1,408 call-edge records, 476 field-access records, and 236 user strings;
+  coverage was complete for the selected types. This is metadata/CIL evidence,
+  not decompiled source or execution (REA evidence
+  ev_1dcbefb5bbcadf85afbee41a59573bdec85565072c11810f229fa27b0c5dd6f7,
+  summary view ev_1c05c4be2754912526e00c3082aadac1b78fb0018258d8cb43a3ba11bbe473c4).
+
+Feature audit from source, cross-checked against the managed artifact:
+* Direct HTTP(S) file downloads, a sequential queue, queue persistence,
+  progress/status fields, pause/resume/retry/cancel, categories/filters, and
+  opening completed files/folders are implemented in source. The transfer
+  engine writes a .part file, attempts a Range request when resuming, checks
+  the returned range start, and restarts from zero when the server ignores a
+  Range request. These are static implementation observations; no real
+  download was executed during this audit.
+* Newly submitted desktop downloads now call StartQueue. Queued jobs restored
+  at application launch also auto-start. Explicitly Paused jobs stay paused
+  and require Resume. Browser-intercepted jobs still wait for the browser's
+  cancellation/handoff confirmation before queue execution.
+* Confirmed defect fixed: queued/paused cancellation and Stop all previously
+  ignored partial-file deletion failure and could mark a download Cancelled
+  while its .part file remained. An active cancellation had the same issue.
+  Failed cleanup now leaves the affected job Paused, preserves its partial
+  file for inspection/resume, and surfaces the cleanup error instead of
+  reporting successful cancellation. Stop all preserves the affected paused
+  state and reports that cleanup failed.
+* The extension's automated mock-Chrome suite passes 12/12. The desktop
+  project builds with 0 warnings and 0 errors. This does not verify actual
+  Chrome interception, desktop UI interactions, or transfer behavior against
+  a live HTTP server.
+
+Features deliberately not implemented / bounded:
+* Segmented/parallel downloads, login/cookie/header/POST transfer context,
+  scheduler automation, video/stream quality selection, and HLS/DASH
+  reconstruction are not supported. The browser interceptor is best-effort:
+  Chrome exposes downloads.onCreated after a transfer starts, and browser
+  authentication/request context is not copied.
+* A successful source build is not proof the published desktop EXE is the one
+  a user currently launches. Confirm the EXE path/version when diagnosing a
+  persistent UI symptom; other copies can be stale.
+* No ordinary desktop-app test project currently exercises queue transitions
+  or the transfer engine. Add focused tests and run controlled local HTTP
+  cases (success, 404, cancellation, range-supported resume, ignored Range,
+  and invalid range) before treating these paths as runtime-verified.

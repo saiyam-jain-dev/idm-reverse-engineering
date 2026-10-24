@@ -1,0 +1,279 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #202b38;
+  background: #f4f7fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 390px;
+  min-height: 300px;
+  max-height: 600px;
+  margin: 0;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  color: #fff;
+  background: #173b52;
+}
+
+.brand-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #7bd0c2;
+  border-radius: 11px;
+  color: #a5eadc;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.header p {
+  margin-top: 3px;
+  color: #c0d4df;
+  font-size: 11px;
+}
+
+main {
+  padding: 15px 16px 12px;
+}
+
+label,
+h2 {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.url-row {
+  display: flex;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #cad4df;
+  border-radius: 7px;
+  outline: none;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+input:focus {
+  border-color: #2c8b83;
+  box-shadow: 0 0 0 2px #2c8b8325;
+}
+
+button {
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+.primary {
+  min-width: 58px;
+  padding: 0 14px;
+  color: #fff;
+  background: #187b74;
+}
+
+.primary:hover:not(:disabled) {
+  background: #12655f;
+}
+
+.secondary {
+  padding: 7px 9px;
+  border: 1px solid #d5dee6;
+  background: #fff;
+  color: #385065;
+}
+
+.text-button {
+  padding: 5px 6px;
+  color: #26716c;
+  background: transparent;
+}
+
+.media-section,
+.downloads-section {
+  margin-top: 17px;
+}
+
+.interception-setting {
+  margin-top: 14px;
+  padding: 10px;
+  border: 1px solid #dbe4eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #187b74;
+}
+
+.interception-setting .hint {
+  margin-left: 23px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hint {
+  margin-top: 5px;
+  color: #657687;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+ul {
+  display: grid;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.media-item,
+.download-item {
+  padding: 9px;
+  border: 1px solid #e1e7ed;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.item-name {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-meta {
+  overflow: hidden;
+  margin-top: 3px;
+  color: #68798a;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-warning {
+  margin-top: 6px;
+  color: #9b5a11;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.item-actions button {
+  padding: 5px 7px;
+  border: 1px solid #dce4eb;
+  background: #f8fafc;
+  color: #39556b;
+}
+
+.item-actions button:hover:not(:disabled) {
+  background: #eaf3f2;
+}
+
+.progress-track {
+  height: 4px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e8edf1;
+}
+
+.progress-value {
+  height: 100%;
+  border-radius: inherit;
+  background: #2b9b87;
+}
+
+.empty {
+  padding: 12px;
+  border: 1px dashed #d7e0e8;
+  border-radius: 8px;
+  color: #68798a;
+  font-size: 10px;
+  text-align: center;
+}
+
+.message {
+  min-height: 15px;
+  margin-top: 10px;
+  color: #a14332;
+  font-size: 10px;
+}
+
+.message.success {
+  color: #287267;
+}
+
+.privacy-note {
+  padding-top: 8px;
+  border-top: 1px solid #e0e7ed;
+  color: #748392;
+  font-size: 9px;
+  line-height: 1.4;
+}

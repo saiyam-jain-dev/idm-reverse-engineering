@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Independent Download Helper",
+  "version": "0.1.0",
+  "description": "Send direct links and page media URLs to the desktop download manager.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxT4mLMDeyvkVOCwgsdaiQtAa1cg9VduvBGZhJHmILbF6WcB2IH8j4LyM++y+CchdKkUqbKLFE/PdciWe6FAnYKshB43eXnmolBU28thJrN9SBr8TDe0bxDygC5A98kKGs72zHDaV7Yx6whfI4dqTr300Hquew/u8CqkRIr/VcrO8PvtmzXPl6rg3MI0WmUBY2aLK4YIV9XCUAyTRVgkjM2A7JPajkWzlk/H3iLnNJewzwDZb4LKp0HUspOtsMi5jl4LP9KA8QN3WBhd2tW8mweIbFwEGW5rSgaADxg0VTMQN5+exqO+YCWMd5gaQbitCuyAZtVLD5kIMPauuAYW5NwIDAQAB",
+  "minimum_chrome_version": "109",
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "downloads",
+    "nativeMessaging",
+    "scripting",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Independent Download Helper",
+    "default_popup": "popup.html"
+  }
+}
